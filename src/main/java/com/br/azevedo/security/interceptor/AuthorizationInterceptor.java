@@ -5,7 +5,6 @@ import com.br.azevedo.exception.ValidationException;
 import com.br.azevedo.security.JwtSecurity;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
@@ -14,16 +13,19 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
+
 @Slf4j
 @Component
-@RequiredArgsConstructor
-public class AuthInterceptor implements HandlerInterceptor {
-
-    private static final String AUTHORIZATION = "Authorization";
-    private static final String TRANSACTION_ID = "transactionid";
+public class AuthorizationInterceptor implements HandlerInterceptor {
 
     private final JwtSecurity jwtService;
     private final Set<String> publicPaths;
+
+    public AuthorizationInterceptor(JwtSecurity jwtService, Set<String> publicPaths) {
+        this.jwtService = jwtService;
+        this.publicPaths = publicPaths;
+    }
 
     @Override
     public boolean preHandle(HttpServletRequest request,

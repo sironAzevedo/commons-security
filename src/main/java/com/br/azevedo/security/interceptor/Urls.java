@@ -5,6 +5,7 @@ public class Urls {
     public static final String[] PUBLIC_URLS = {
             "/public",
             "/health/**",
-            "/swagger-ui/**"
+            "/swagger-ui/**",
+            "/v1/user/login/**"
     };
 }

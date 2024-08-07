@@ -1,6 +1,8 @@
 package com.br.azevedo.security;
 
-import com.br.azevedo.security.interceptor.InterceptorConfig;
+import com.br.azevedo.security.interceptor.SecurityConfig;
+import com.br.azevedo.security.secretMnager.SecretManagerRepository;
+import com.br.azevedo.security.secretMnager.VaultSecretsConfig;
 import org.springframework.context.annotation.Import;
 
 import java.lang.annotation.ElementType;
@@ -10,7 +12,11 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@Import({InterceptorConfig.class})
+@Import({
+        SecurityConfig.class,
+        JwtSecurity.class,
+        SecretManagerRepository.class,
+        VaultSecretsConfig.class})
 public @interface EnableSecurity {
     String[] publicPaths() default {};
 }

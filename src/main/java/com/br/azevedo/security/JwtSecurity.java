@@ -2,9 +2,10 @@ package com.br.azevedo.security;
 
 import com.br.azevedo.exception.AuthenticationException;
 import com.br.azevedo.security.models.jwt.JwtEntity;
+import com.br.azevedo.security.secretMnager.SecretManagerRepository;
 import io.jsonwebtoken.ExpiredJwtException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import static org.apache.commons.lang3.ObjectUtils.isEmpty;
@@ -13,11 +14,12 @@ import static org.apache.commons.lang3.ObjectUtils.isEmpty;
 @Component
 public class JwtSecurity {
 
-    //@Value("${app-config.secrets.api-secret}")
-    private String apiSecret;
+    @Autowired
+    private SecretManagerRepository secretManagerRepository;
 
     public void validateAuthorization(String token) {
         try {
+            var apiSecret = secretManagerRepository.getSecret("auth").get("API_SECRET").toString();
             var user = JwtEntity.getUser(token, apiSecret);
             if (isEmpty(user) || isEmpty(user.getId())) {
                 throw new AuthenticationException("The user is not valid.");
