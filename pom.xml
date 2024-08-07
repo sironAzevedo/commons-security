@@ -5,8 +5,8 @@
 
 	<groupId>com.br.azevedo</groupId>
 	<artifactId>commons-security</artifactId>
-	<version>1.0-SNAPSHOT</version>
 	<name>commons-security</name>
+	<version>1.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<parent>
