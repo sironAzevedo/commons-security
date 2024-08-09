@@ -2,7 +2,7 @@ package com.br.azevedo.security;
 
 import com.br.azevedo.security.interceptor.SecurityConfig;
 import com.br.azevedo.security.secretMnager.SecretManagerRepository;
-import com.br.azevedo.security.secretMnager.VaultSecretsConfig;
+import com.br.azevedo.security.config.VaultSecretsConfig;
 import org.springframework.context.annotation.Import;
 
 import java.lang.annotation.ElementType;

@@ -1,4 +1,4 @@
-package com.br.azevedo.security.secretMnager;
+package com.br.azevedo.security.config;
 
 import com.br.azevedo.exception.InternalErrorException;
 import lombok.extern.slf4j.Slf4j;
