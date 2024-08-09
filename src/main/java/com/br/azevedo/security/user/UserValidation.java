@@ -2,30 +2,24 @@ package com.br.azevedo.security.user;
 
 import com.br.azevedo.exception.AuthorizationException;
 import com.br.azevedo.model.enums.PerfilEnum;
-import com.br.azevedo.security.EnableSecurity;
 import com.br.azevedo.security.models.jwt.JwtEntity;
 import com.br.azevedo.security.secretMnager.SecretManagerRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.annotation.Pointcut;
-import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextException;
-import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.servlet.HandlerMapping;
-import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 
-import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
+
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 
 @Slf4j
 @Aspect
@@ -45,7 +39,7 @@ public class UserValidation {
     public void callAt(ValidationUser validationUser) {}
 
     @Before("callAt(validationUser)")
-    public void checkAccess(ValidationUser validationUser) throws Throwable {
+    public void checkAccess(ValidationUser validationUser) {
         log.info("Validando o usuario");
         var token = request.getHeader(AUTHORIZATION);
 
