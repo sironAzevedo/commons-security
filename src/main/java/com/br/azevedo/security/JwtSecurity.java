@@ -3,19 +3,18 @@ package com.br.azevedo.security;
 import com.br.azevedo.exception.AuthenticationException;
 import com.br.azevedo.security.models.jwt.JwtEntity;
 import com.br.azevedo.security.secretMnager.SecretManagerRepository;
-import io.jsonwebtoken.ExpiredJwtException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import static org.apache.commons.lang3.ObjectUtils.isEmpty;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class JwtSecurity {
 
-    @Autowired
-    private SecretManagerRepository secretManagerRepository;
+    private final SecretManagerRepository secretManagerRepository;
 
     public void validateAuthorization(String token) {
         try {
@@ -24,10 +23,14 @@ public class JwtSecurity {
             if (isEmpty(user) || isEmpty(user.getId())) {
                 throw new AuthenticationException("The user is not valid.");
             }
-        } catch (ExpiredJwtException e) {
-            log.error("Token expirado");
-            throw new AuthenticationException("Token expirado");
-        } catch (Exception ex) {
+        }
+
+//        catch (ExpiredJwtException e) {
+//            log.error("Token expirado");
+//            throw new AuthenticationException("Token expirado");
+//        }
+
+        catch (Exception ex) {
             log.error("Erro ao validar o token: {}", ex.getMessage());
             throw new AuthenticationException("Error while trying to proccess the Access Token.");
         }
