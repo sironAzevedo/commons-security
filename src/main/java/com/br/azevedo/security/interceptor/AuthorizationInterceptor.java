@@ -84,7 +84,6 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
 
     private void validateAuthorization(String authorization, HttpServletRequest request) {
         if (isOptionsRequest(request) || isPublicUrl(request.getRequestURI())) {
-            log.info("O path [{}] é publica", request.getRequestURI());
             return;
         } else if (StringUtils.isEmpty(authorization)) {
             log.error("Token não foi enviado");

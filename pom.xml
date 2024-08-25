@@ -45,7 +45,7 @@
 		<dependency>
 			<groupId>com.br.azevedo</groupId>
 			<artifactId>commons-utils</artifactId>
-			<version>1.0.02082024155727</version>
+			<version>1.0.25082024022650</version>
 		</dependency>
 
 		<dependency>

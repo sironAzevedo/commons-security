@@ -3,6 +3,9 @@ package com.br.azevedo.security.secretMnager;
 import com.br.azevedo.exception.ApplicationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Repository;
 import org.springframework.vault.core.VaultTemplate;
 import org.springframework.vault.support.Versioned;
@@ -13,6 +16,11 @@ import java.util.Objects;
 @Slf4j
 @Repository
 @RequiredArgsConstructor
+@ConditionalOnProperty(
+        value = {"security.enabled"},
+        havingValue = "true",
+        matchIfMissing = true
+)
 public class SecretManagerRepository {
     private final VaultTemplate vaultTemplate;
 
@@ -30,12 +38,14 @@ public class SecretManagerRepository {
     }
 
     @SuppressWarnings("unchecked")
+    @Cacheable(value = "vault_secret_by_path", key = "#path", unless="#result == null")
     public Map<String, Object> getSecret(String path) {
         return (Map<String, Object>) Objects.requireNonNull(
                 Objects.requireNonNull(vaultTemplate.read("secret/data/".concat(path)))
                         .getData()).get("data");
     }
 
+    @CacheEvict(value = "vault_secret_by_path", key = "#path", allEntries = true)
     public void deleteSecret(String path) {
         try {
             vaultTemplate.delete(path);
