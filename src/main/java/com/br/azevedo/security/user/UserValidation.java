@@ -15,9 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.servlet.HandlerMapping;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
 
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 
@@ -40,10 +38,7 @@ public class UserValidation {
 
     @Before("callAt(validationUser)")
     public void checkAccess(ValidationUser validationUser) {
-        log.info("Validando o usuario");
         var token = request.getHeader(AUTHORIZATION);
-
-        log.info("Verificando se o email que está no token é o mesmo que está no path variable");
         var apiSecret = secretManagerRepository.getSecret("auth").get("API_SECRET").toString();
         var user = JwtEntity.getUser(token, apiSecret);
 
@@ -53,9 +48,15 @@ public class UserValidation {
 
         if (email.equals(user.getEmail())) {
             return;
-        } else if (!CollectionUtils.isEmpty(user.getPerfis()) &&
-                new HashSet<>(user.getPerfis()).containsAll(Arrays.asList(PerfilEnum.ROLE_ADMIN, PerfilEnum.ROLE_APPLICATION))) {
-            return;
+        }
+
+        Set<PerfilEnum> userPerfis = new HashSet<>(user.getPerfis());
+        Set<PerfilEnum> requiredPerfis = EnumSet.of(PerfilEnum.ROLE_ADMIN, PerfilEnum.ROLE_APPLICATION);
+
+        for (PerfilEnum perfil: requiredPerfis) {
+            if (userPerfis.contains(perfil)) {
+                return;
+            }
         }
 
         log.error("Usuario não autorizado a acessar a informação");
