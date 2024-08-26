@@ -17,8 +17,7 @@ public final class Constantes {
             Pattern.compile(".*/login.*"),
             Pattern.compile("/health/.*"),
             Pattern.compile(".*/public/.*"),
-            Pattern.compile(".*/actuator/.*")
+            Pattern.compile(".*/actuator/.*"),
+            Pattern.compile(".*/error/.*")
     );
-
-
 }

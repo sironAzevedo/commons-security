@@ -7,6 +7,7 @@ import com.br.azevedo.security.JwtSecurity;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationContext;
@@ -29,8 +30,7 @@ import static com.br.azevedo.security.utils.Constantes.*;
 @Component
 @ConditionalOnProperty(
         value = {"security.enabled"},
-        havingValue = "true",
-        matchIfMissing = true
+        havingValue = "true"
 )
 public class AuthorizationInterceptor implements HandlerInterceptor {
 
@@ -50,13 +50,17 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
 
         validateAuthorization(request.getHeader(AUTHORIZATION), request);
         validateTransactionId(request.getHeader(TRANSACTION_ID));
-        request.setAttribute("serviceid", generateServiceId());
         return true;
     }
 
     private boolean isPublicUrl(String url) {
         EnableSecurity enableSecurity = this.getRequestSecurityMetadata(applicationContext);
         // Convert the publicPaths array into a set of compiled patterns
+
+        if (ArrayUtils.isEmpty(enableSecurity.publicPaths())) {
+            return false;
+        }
+
         Set<Pattern> customPatterns = Arrays.stream(enableSecurity.publicPaths())
                 .map(Pattern::compile)
                 .collect(Collectors.toSet());

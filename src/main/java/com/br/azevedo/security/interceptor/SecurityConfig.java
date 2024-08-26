@@ -11,8 +11,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 @ConditionalOnProperty(
         value = {"security.enabled"},
-        havingValue = "true",
-        matchIfMissing = true
+        havingValue = "true"
 )
 public class SecurityConfig implements WebMvcConfigurer {
 
