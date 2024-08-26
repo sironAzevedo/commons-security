@@ -19,8 +19,7 @@ import org.springframework.vault.support.VaultToken;
 @RequiredArgsConstructor
 @ConditionalOnProperty(
         value = {"security.enabled"},
-        havingValue = "true",
-        matchIfMissing = true
+        havingValue = "true"
 )
 public class VaultSecretsConfig {
 

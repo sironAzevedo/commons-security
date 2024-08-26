@@ -5,6 +5,7 @@ import com.br.azevedo.security.models.jwt.JwtEntity;
 import com.br.azevedo.security.secretMnager.SecretManagerRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import static org.apache.commons.lang3.ObjectUtils.isEmpty;
@@ -12,6 +13,10 @@ import static org.apache.commons.lang3.ObjectUtils.isEmpty;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@ConditionalOnProperty(
+        value = {"security.enabled"},
+        havingValue = "true"
+)
 public class JwtSecurity {
 
     private final SecretManagerRepository secretManagerRepository;

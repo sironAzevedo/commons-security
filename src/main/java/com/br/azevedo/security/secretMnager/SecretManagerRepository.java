@@ -18,8 +18,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 @ConditionalOnProperty(
         value = {"security.enabled"},
-        havingValue = "true",
-        matchIfMissing = true
+        havingValue = "true"
 )
 public class SecretManagerRepository {
     private final VaultTemplate vaultTemplate;
