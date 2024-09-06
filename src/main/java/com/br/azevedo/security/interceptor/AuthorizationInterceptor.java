@@ -1,25 +1,29 @@
 package com.br.azevedo.security.interceptor;
 
+import com.br.azevedo.exception.ApplicationException;
 import com.br.azevedo.exception.AuthenticationException;
 import com.br.azevedo.exception.NotFoundException;
 import com.br.azevedo.security.EnableSecurity;
 import com.br.azevedo.security.JwtSecurity;
+import com.br.azevedo.security.config.vault.VaultParameter;
+import com.br.azevedo.security.secretManager.VaultSecretManager;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextException;
 import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.util.Arrays;
 import java.util.Set;
-import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -34,13 +38,15 @@ import static com.br.azevedo.security.utils.Constantes.*;
 )
 public class AuthorizationInterceptor implements HandlerInterceptor {
 
-    private final JwtSecurity jwtService;
+    private JwtSecurity jwtService;
     private final ApplicationContext applicationContext;
 
-    public AuthorizationInterceptor(ApplicationContext applicationContext, JwtSecurity jwtService) {
-        log.info("Segurança ativada");
-        this.jwtService = jwtService;
+    public AuthorizationInterceptor(
+            ApplicationContext applicationContext,
+            Environment environment,
+            VaultParameter vaultParameter) {
         this.applicationContext = applicationContext;
+        this.enabledSecurity(environment, vaultParameter);
     }
 
     @Override
@@ -55,12 +61,11 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
 
     private boolean isPublicUrl(String url) {
         EnableSecurity enableSecurity = this.getRequestSecurityMetadata(applicationContext);
-        // Convert the publicPaths array into a set of compiled patterns
-
-        if (ArrayUtils.isEmpty(enableSecurity.publicPaths())) {
+        if (ObjectUtils.isEmpty(enableSecurity) || ArrayUtils.isEmpty(enableSecurity.publicPaths())) {
             return false;
         }
 
+        // Convert the publicPaths array into a set of compiled patterns
         Set<Pattern> customPatterns = Arrays.stream(enableSecurity.publicPaths())
                 .map(Pattern::compile)
                 .collect(Collectors.toSet());
@@ -70,6 +75,18 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
 
 
         return collect.stream().anyMatch(pattern -> pattern.matcher(url).matches());
+    }
+
+    private void enabledSecurity(Environment environment, VaultParameter vaultParameter) {
+        try {
+            log.info("Ativando a Segurança");
+            VaultSecretManager vaultSecretManager = new VaultSecretManager(applicationContext, environment, vaultParameter);
+            this.jwtService = new JwtSecurity(vaultSecretManager);
+            log.info("Segurança ativada");
+        } catch (Exception e) {
+            log.error("Não foi possivel habilitar a segurança: {}", e.getMessage());
+            throw new ApplicationException("Não foi possivel habilitar a segurança", e);
+        }
     }
 
     private boolean isOptionsRequest(HttpServletRequest request) {
@@ -97,17 +114,14 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
         jwtService.validateAuthorization(authorization);
     }
 
-    private String generateServiceId() {
-        return UUID.randomUUID().toString();
-    }
-
     private EnableSecurity getRequestSecurityMetadata(ApplicationContext applicationContext) {
-        Object annotatedClass = applicationContext.getBeansWithAnnotation(EnableSecurity.class)
+        return applicationContext.getBeansWithAnnotation(EnableSecurity.class)
                 .values()
                 .stream()
                 .findFirst()
-                .orElseThrow(() -> new ApplicationContextException("Não foi possível achar uma classe com @EnableSecurity"));
+                .map(a -> AnnotationUtils.findAnnotation(a.getClass(), EnableSecurity.class))
+                .orElse(null);
 
-        return AnnotationUtils.findAnnotation(annotatedClass.getClass(), EnableSecurity.class);
+//        return AnnotationUtils.findAnnotation(annotatedClass.getClass(), EnableSecurity.class);
     }
 }

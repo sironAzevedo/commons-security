@@ -2,28 +2,25 @@ package com.br.azevedo.security;
 
 import com.br.azevedo.exception.AuthenticationException;
 import com.br.azevedo.security.models.jwt.JwtEntity;
-import com.br.azevedo.security.secretMnager.SecretManagerRepository;
-import lombok.RequiredArgsConstructor;
+import com.br.azevedo.security.secretManager.VaultSecretManager;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import static org.apache.commons.lang3.ObjectUtils.isEmpty;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
-@ConditionalOnProperty(
-        value = {"security.enabled"},
-        havingValue = "true"
-)
 public class JwtSecurity {
 
-    private final SecretManagerRepository secretManagerRepository;
+    private final VaultSecretManager vaultSecretManager;
+
+    public JwtSecurity(VaultSecretManager vaultSecretManager) {
+        this.vaultSecretManager = vaultSecretManager;
+    }
 
     public void validateAuthorization(String token) {
         try {
-            var apiSecret = secretManagerRepository.getSecret("auth").get("API_SECRET").toString();
+            var apiSecret = vaultSecretManager.getSecret("auth").get("API_SECRET").toString();
             var user = JwtEntity.getUser(token, apiSecret);
             if (isEmpty(user) || isEmpty(user.getId())) {
                 throw new AuthenticationException("The user is not valid.");

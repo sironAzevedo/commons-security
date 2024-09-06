@@ -3,7 +3,7 @@ package com.br.azevedo.security.user;
 import com.br.azevedo.exception.AuthorizationException;
 import com.br.azevedo.model.enums.PerfilEnum;
 import com.br.azevedo.security.models.jwt.JwtEntity;
-import com.br.azevedo.security.secretMnager.SecretManagerRepository;
+import com.br.azevedo.security.secretManager.VaultSecretManager;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,7 +12,6 @@ import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
-import org.springframework.util.CollectionUtils;
 import org.springframework.web.servlet.HandlerMapping;
 
 import java.util.*;
@@ -31,7 +30,7 @@ import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 public class UserValidation {
 
     private final HttpServletRequest request;
-    private final SecretManagerRepository secretManagerRepository;
+    private final VaultSecretManager vaultSecretManager;
 
     @Pointcut("@annotation(validationUser)")
     public void callAt(ValidationUser validationUser) {}
@@ -39,7 +38,7 @@ public class UserValidation {
     @Before("callAt(validationUser)")
     public void checkAccess(ValidationUser validationUser) {
         var token = request.getHeader(AUTHORIZATION);
-        var apiSecret = secretManagerRepository.getSecret("auth").get("API_SECRET").toString();
+        var apiSecret = vaultSecretManager.getSecret("auth").get("API_SECRET").toString();
         var user = JwtEntity.getUser(token, apiSecret);
 
         @SuppressWarnings("unchecked")
