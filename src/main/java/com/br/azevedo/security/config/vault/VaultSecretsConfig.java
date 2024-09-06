@@ -1,12 +1,7 @@
 package com.br.azevedo.security.config.vault;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.vault.authentication.TokenAuthentication;
@@ -15,28 +10,17 @@ import org.springframework.vault.core.VaultTemplate;
 import org.springframework.vault.support.VaultToken;
 
 @Slf4j
-@Configuration
-@RequiredArgsConstructor
-@ConditionalOnProperty(
-        value = {"security.enabled"},
-        havingValue = "true"
-)
 public class VaultSecretsConfig {
 
     private final ApplicationContext applicationContext;
     private final Environment environment;
 
-    @Value("${security.secret.vault.endpoint:http://127.0.0.1:8200}")
-    private String vaultUri;
+    public VaultSecretsConfig(ApplicationContext applicationContext, Environment environment) {
+        this.applicationContext = applicationContext;
+        this.environment = environment;
+    }
 
-    @Value("${security.secret.vault.role-id}")
-    private String roleId;
-
-    @Value("${security.secret.vault.secret-id}")
-    private String secretId;
-
-    @Bean
-    public VaultTemplate vaultTemplate() {
+    public VaultTemplate vaultTemplate(String vaultUri, String roleId, String secretId) {
         try {
             AppRoleAuthenticationService appRoleAuth = new AppRoleAuthenticationService(roleId, secretId, vaultUri, applicationContext);
             VaultEndpoint vaultEp = appRoleAuth.vaultEndpoint();

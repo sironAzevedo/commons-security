@@ -1,12 +1,14 @@
-package com.br.azevedo.security.secretMnager;
+package com.br.azevedo.security.secretManager;
 
 import com.br.azevedo.exception.ApplicationException;
-import lombok.RequiredArgsConstructor;
+import com.br.azevedo.security.config.vault.VaultParameter;
+import com.br.azevedo.security.config.vault.VaultSecretsConfig;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.stereotype.Repository;
+import org.springframework.context.ApplicationContext;
+import org.springframework.core.env.Environment;
+import org.springframework.stereotype.Component;
 import org.springframework.vault.core.VaultTemplate;
 import org.springframework.vault.support.Versioned;
 
@@ -14,14 +16,15 @@ import java.util.Map;
 import java.util.Objects;
 
 @Slf4j
-@Repository
-@RequiredArgsConstructor
-@ConditionalOnProperty(
-        value = {"security.enabled"},
-        havingValue = "true"
-)
-public class SecretManagerRepository {
+@Component
+public class VaultSecretManager {
+
     private final VaultTemplate vaultTemplate;
+
+    public VaultSecretManager(ApplicationContext applicationContext, Environment environment, VaultParameter vaultParameter) {
+        VaultSecretsConfig vaultSecretsConfig = new VaultSecretsConfig(applicationContext, environment);
+        this.vaultTemplate = vaultSecretsConfig.vaultTemplate(vaultParameter.getVaultUri(), vaultParameter.getRoleId(), vaultParameter.getSecretId());
+    }
 
     public void createOrUpdateSecret(String path, Map<String, Object> data) {
         try {
