@@ -18,6 +18,9 @@ public final class Constantes {
             Pattern.compile("/health/.*"),
             Pattern.compile(".*/public/.*"),
             Pattern.compile(".*/actuator/.*"),
-            Pattern.compile(".*/error/.*")
+            Pattern.compile(".*/error/.*"),
+            Pattern.compile("/v3/api-docs/.*"),
+            Pattern.compile("/swagger-ui/.*"),
+            Pattern.compile("swagger-ui.html")
     );
 }
