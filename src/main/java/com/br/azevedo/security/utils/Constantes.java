@@ -13,8 +13,9 @@ public final class Constantes {
     public final static Pattern UUID_REGEX_PATTERN =
             Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
 
+    public static final String APPLICATION = "application";
+
     public static final Set<Pattern> PUBLIC_URLS = Set.of(
-            Pattern.compile(".*/login.*"),
             Pattern.compile("/health/.*"),
             Pattern.compile(".*/public/.*"),
             Pattern.compile(".*/actuator/.*"),

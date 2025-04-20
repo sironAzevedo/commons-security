@@ -7,6 +7,7 @@ import com.br.azevedo.security.EnableSecurity;
 import com.br.azevedo.security.JwtSecurity;
 import com.br.azevedo.security.config.vault.VaultParameter;
 import com.br.azevedo.security.secretManager.VaultSecretManager;
+import com.br.azevedo.security.strategy.TokenValidatorFactory;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -39,12 +40,16 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
 
     private JwtSecurity jwtService;
     private final ApplicationContext applicationContext;
+    private final TokenValidatorFactory tokenValidatorFactory;
+    private HttpServletRequest request;
 
     public AuthorizationInterceptor(
             ApplicationContext applicationContext,
             Environment environment,
-            VaultParameter vaultParameter) {
+            VaultParameter vaultParameter,
+            TokenValidatorFactory tokenValidatorFactory) {
         this.applicationContext = applicationContext;
+        this.tokenValidatorFactory = tokenValidatorFactory;
         this.enabledSecurity(environment, vaultParameter);
     }
 
@@ -53,9 +58,37 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
                              HttpServletResponse response,
                              Object handler) {
 
+        this.request = request;
         validateAuthorization(request.getHeader(AUTHORIZATION), request);
         validateTransactionId(request.getHeader(TRANSACTION_ID));
         return true;
+    }
+
+    private void enabledSecurity(Environment environment, VaultParameter vaultParameter) {
+        try {
+            log.info("Ativando a Segurança");
+            VaultSecretManager vaultSecretManager = new VaultSecretManager(applicationContext, environment, vaultParameter);
+            this.jwtService = new JwtSecurity(this.request, vaultSecretManager, tokenValidatorFactory);
+            log.info("Segurança ativada");
+        } catch (Exception e) {
+            log.error("Não foi possivel habilitar a segurança: {}", e.getMessage());
+            throw new ApplicationException("Não foi possivel habilitar a segurança", e);
+        }
+    }
+
+    private void validateAuthorization(String authorization, HttpServletRequest request) {
+        if (isOptionsRequest(request) || isPublicUrl(request.getRequestURI())) {
+            return;
+        } else if (StringUtils.isEmpty(authorization)) {
+            log.error("Token não foi enviado");
+            throw new AuthenticationException("The access token was not informed.");
+        }
+
+        jwtService.validateAuthorization(authorization);
+    }
+
+    private boolean isOptionsRequest(HttpServletRequest request) {
+        return HttpMethod.OPTIONS.name().equals(request.getMethod());
     }
 
     private boolean isPublicUrl(String url) {
@@ -76,22 +109,6 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
         return collect.stream().anyMatch(pattern -> pattern.matcher(url).matches());
     }
 
-    private void enabledSecurity(Environment environment, VaultParameter vaultParameter) {
-        try {
-            log.info("Ativando a Segurança");
-            VaultSecretManager vaultSecretManager = new VaultSecretManager(applicationContext, environment, vaultParameter);
-            this.jwtService = new JwtSecurity(vaultSecretManager);
-            log.info("Segurança ativada");
-        } catch (Exception e) {
-            log.error("Não foi possivel habilitar a segurança: {}", e.getMessage());
-            throw new ApplicationException("Não foi possivel habilitar a segurança", e);
-        }
-    }
-
-    private boolean isOptionsRequest(HttpServletRequest request) {
-        return HttpMethod.OPTIONS.name().equals(request.getMethod());
-    }
-
     private void validateTransactionId(String transactionId) {
         if (StringUtils.isEmpty(transactionId)) {
             log.error("The transactionid header is required.");
@@ -100,17 +117,6 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
             log.error("The transactionid [{}] invalid.", transactionId);
             throw new NotFoundException("Invalid transactionid.");
         }
-    }
-
-    private void validateAuthorization(String authorization, HttpServletRequest request) {
-        if (isOptionsRequest(request) || isPublicUrl(request.getRequestURI())) {
-            return;
-        } else if (StringUtils.isEmpty(authorization)) {
-            log.error("Token não foi enviado");
-            throw new AuthenticationException("The access token was not informed.");
-        }
-
-        jwtService.validateAuthorization(authorization);
     }
 
     private EnableSecurity getRequestSecurityMetadata(ApplicationContext applicationContext) {

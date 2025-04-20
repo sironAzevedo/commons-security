@@ -5,14 +5,16 @@ import com.br.azevedo.model.dto.UserDTO;
 import com.br.azevedo.utils.JsonUtils;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.apache.commons.lang3.ObjectUtils;
 
+import static com.br.azevedo.security.utils.Constantes.APPLICATION;
 import static org.apache.commons.lang3.ObjectUtils.isEmpty;
 
-public class JwtEntity extends UserDTO {
+public class TokenMapper {
     private static final String EMPTY_SPACE = " ";
     private static final Integer TOKEN_INDEX = 1;
 
-    public static JwtEntity getUser(String token, String apiSecret) {
+    public static Object get(String token, String apiSecret) {
         var accessToken = extractToken(token);
         var claims = Jwts
                 .parserBuilder()
@@ -21,8 +23,19 @@ public class JwtEntity extends UserDTO {
                 .parseClaimsJws(accessToken)
                 .getBody();
 
-        var authUser = JsonUtils.objetcToJson(claims.get("authUser"));
-        return JsonUtils.jsonToObject(authUser, JwtEntity.class);
+
+        var type = claims.get("type");
+        if (ObjectUtils.isEmpty(type)) {
+            throw new AuthenticationException("Token is not valid.");
+        }
+
+        if (APPLICATION.equals(type)) {
+            var user = JsonUtils.objetcToJson(claims.get("authApp"));
+            return JsonUtils.jsonToObject(user, AppEntity.class);
+        }
+
+        var app = JsonUtils.objetcToJson(claims.get("authUser"));
+        return JsonUtils.jsonToObject(app, UserDTO.class);
     }
 
     private static String extractToken(String token) {
