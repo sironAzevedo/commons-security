@@ -60,9 +60,13 @@ public class AppTokenValidationStrategy implements TokenValidationStrategy {
         }
 
         String url = app.getOrigen();
-        String regex = ".*/realms/myrealm(/.*)?$";
-        if (!url.matches(regex)) {
-            throw new AuthenticationException("origen inválido. Esperado path '/realms/myrealm'.");
+        String regexDev = ".*/realms/myrealm(/.*)?$";
+        String regexHubServices = ".*/realms/managementHubServices(/.*)?$";
+
+        boolean isDev = url.matches(regexDev);
+        boolean isHubServices = url.matches(regexHubServices);
+        if (!isDev && !isHubServices) {
+            throw new AuthenticationException("origen do token inválido. Entre em contato com o administrador.");
         }
     }
 
