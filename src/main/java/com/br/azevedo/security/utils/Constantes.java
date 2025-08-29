@@ -16,12 +16,13 @@ public final class Constantes {
     public static final String APPLICATION = "application";
 
     public static final Set<Pattern> PUBLIC_URLS = Set.of(
-            Pattern.compile("/health/.*"),
-            Pattern.compile(".*/public/.*"),
-            Pattern.compile(".*/actuator/.*"),
-            Pattern.compile(".*/error/.*"),
-            Pattern.compile("/v3/api-docs/.*"),
-            Pattern.compile("/swagger-ui/.*"),
-            Pattern.compile("swagger-ui.html")
+            Pattern.compile("/public.*"),        // Libera /public, /public/css, etc.
+            Pattern.compile("/favicon.*"),        // Libera /public, /public/css, etc.
+            Pattern.compile("/health.*"),        // Libera /health e /health/live
+            Pattern.compile("/actuator.*"),      // Libera tudo sob /actuator
+            Pattern.compile("/error"),
+            Pattern.compile("/v3/api-docs.*"),   // Libera /v3/api-docs e /v3/api-docs/swagger-config
+            Pattern.compile("/swagger-ui.*"),    // Libera /swagger-ui e /swagger-ui/index.html
+            Pattern.compile("/swagger-ui.html")  // Corrigido: com a barra no início
     );
 }

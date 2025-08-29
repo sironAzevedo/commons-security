@@ -22,7 +22,9 @@ import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+import java.net.URI;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -92,30 +94,34 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
     }
 
     private boolean isPublicUrl(String url) {
-        EnableSecurity enableSecurity = this.getRequestSecurityMetadata(applicationContext);
-        if (ObjectUtils.isEmpty(enableSecurity) || ArrayUtils.isEmpty(enableSecurity.publicPaths())) {
-            return false;
+        // 1. Extrai o caminho da URL recebida.
+        String path = URI.create(url).getPath();
+
+        // 2. Inicia a coleção de patterns com as URLs públicas padrão.
+        Set<Pattern> publicPatterns = new HashSet<>(PUBLIC_URLS);
+
+        // 3. Adiciona os caminhos customizados da anotação, se existirem.
+        EnableSecurity enableSecurity = this.getRequestSecurityMetadata(this.applicationContext);
+        if (!ObjectUtils.isEmpty(enableSecurity) && !ArrayUtils.isEmpty(enableSecurity.publicPaths())) {
+            Arrays.stream(enableSecurity.publicPaths())
+                    .map(Pattern::compile)
+                    .forEach(publicPatterns::add);
         }
 
-        // Convert the publicPaths array into a set of compiled patterns
-        Set<Pattern> customPatterns = Arrays.stream(enableSecurity.publicPaths())
-                .map(Pattern::compile)
-                .collect(Collectors.toSet());
-
-        Set<Pattern> collect = Stream.concat(PUBLIC_URLS.stream(), customPatterns.stream())
-                .collect(Collectors.toSet());
-
-
-        return collect.stream().anyMatch(pattern -> pattern.matcher(url).matches());
+        // 4. Verifica se o caminho corresponde a qualquer um dos padrões.
+        return publicPatterns.stream()
+                .anyMatch(pattern -> pattern.matcher(path).find());
     }
 
     private void validateTransactionId(String transactionId) {
-        if (StringUtils.isEmpty(transactionId)) {
-            log.error("The transactionid header is required.");
-            throw new NotFoundException("The transactionid header is required.");
-        } else if (!UUID_REGEX_PATTERN.matcher(transactionId).matches()){
-            log.error("The transactionid [{}] invalid.", transactionId);
-            throw new NotFoundException("Invalid transactionid.");
+        if(!isPublicUrl(request.getRequestURI()) ) {
+            if (StringUtils.isEmpty(transactionId)) {
+                log.error("The transactionid header is required.");
+                throw new NotFoundException("The transactionid header is required.");
+            } else if (!UUID_REGEX_PATTERN.matcher(transactionId).matches()){
+                log.error("The transactionid [{}] invalid.", transactionId);
+                throw new NotFoundException("Invalid transactionid.");
+            }
         }
     }
 
@@ -126,7 +132,5 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
                 .findFirst()
                 .map(a -> AnnotationUtils.findAnnotation(a.getClass(), EnableSecurity.class))
                 .orElse(null);
-
-//        return AnnotationUtils.findAnnotation(annotatedClass.getClass(), EnableSecurity.class);
     }
 }
