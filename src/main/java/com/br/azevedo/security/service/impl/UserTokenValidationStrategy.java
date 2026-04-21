@@ -6,23 +6,20 @@ import com.br.azevedo.model.dto.UserDTO;
 import com.br.azevedo.model.enums.PerfilEnum;
 import com.br.azevedo.security.service.TokenValidationStrategy;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.Getter;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerMapping;
 
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Component
 public class UserTokenValidationStrategy implements TokenValidationStrategy {
+    private UserDTO user;
 
     @Override
-    public void validate(HttpServletRequest request, Object token) {
-        UserDTO user = (UserDTO) token;
+    public void validate(HttpServletRequest request) {
         if (ObjectUtils.allNotNull(user, user.getId())) {
             if (ObjectUtils.isNotEmpty(request)) {
 
@@ -50,5 +47,10 @@ public class UserTokenValidationStrategy implements TokenValidationStrategy {
     @Override
     public boolean supports(Object token) {
         return token instanceof UserDTO;
+    }
+
+    @Override
+    public void setObject(Object user) {
+        this.user = (UserDTO) user;
     }
 }

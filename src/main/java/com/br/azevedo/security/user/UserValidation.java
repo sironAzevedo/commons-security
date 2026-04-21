@@ -1,7 +1,5 @@
 package com.br.azevedo.security.user;
 
-import com.br.azevedo.security.models.jwt.TokenMapper;
-import com.br.azevedo.security.secretManager.VaultSecretManager;
 import com.br.azevedo.security.service.TokenValidationStrategy;
 import com.br.azevedo.security.strategy.TokenValidatorFactory;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,7 +25,6 @@ import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 public class UserValidation {
 
     private final HttpServletRequest request;
-    private final VaultSecretManager vaultSecretManager;
     private final TokenValidatorFactory tokenValidatorFactory;
 
     @Pointcut("@annotation(validationUser)")
@@ -36,9 +33,7 @@ public class UserValidation {
     @Before("callAt(validationUser)")
     public void checkAccess(ValidationUser validationUser) {
         var token = request.getHeader(AUTHORIZATION);
-        var apiSecret = vaultSecretManager.getSecret("auth").get("API_SECRET").toString();
-        Object mapToken = TokenMapper.get(token, apiSecret);
-        TokenValidationStrategy strategy = tokenValidatorFactory.getStrategy(mapToken);
-        strategy.validate(request, mapToken);
+        TokenValidationStrategy strategy = tokenValidatorFactory.getStrategy(token);
+        strategy.validate(request);
     }
 }

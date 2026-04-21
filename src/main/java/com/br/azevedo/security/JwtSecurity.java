@@ -1,8 +1,6 @@
 package com.br.azevedo.security;
 
 import com.br.azevedo.exception.AuthenticationException;
-import com.br.azevedo.security.models.jwt.TokenMapper;
-import com.br.azevedo.security.secretManager.VaultSecretManager;
 import com.br.azevedo.security.service.TokenValidationStrategy;
 import com.br.azevedo.security.strategy.TokenValidatorFactory;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,25 +19,20 @@ public class JwtSecurity {
     private String scopes;
 
     private final HttpServletRequest request;
-    private final VaultSecretManager vaultSecretManager;
     private final TokenValidatorFactory tokenValidatorFactory;
     private static final String EMPTY_SPACE = " ";
     private static final Integer TOKEN_INDEX = 1;
 
     public JwtSecurity(HttpServletRequest request,
-                       VaultSecretManager vaultSecretManager,
                        TokenValidatorFactory tokenValidatorFactory) {
         this.request = request;
-        this.vaultSecretManager = vaultSecretManager;
         this.tokenValidatorFactory = tokenValidatorFactory;
     }
 
     public void validateAuthorization(String token) {
         try {
-            var apiSecret = vaultSecretManager.getSecret("auth").get("API_SECRET").toString();
-            Object mapToken = TokenMapper.get(token, apiSecret);
-            TokenValidationStrategy strategy = tokenValidatorFactory.getStrategy(mapToken);
-            strategy.validate(this.request, mapToken);
+            TokenValidationStrategy strategy = tokenValidatorFactory.getStrategy(token);
+            strategy.validate(this.request);
         }
 
 //        catch (ExpiredJwtException e) {
