@@ -2,6 +2,7 @@ package com.br.azevedo.security.service.impl;
 
 import com.br.azevedo.exception.AuthenticationException;
 import com.br.azevedo.exception.AuthorizationException;
+import com.br.azevedo.model.dto.UserDTO;
 import com.br.azevedo.model.enums.PerfilEnum;
 import com.br.azevedo.security.models.jwt.AppEntity;
 import com.br.azevedo.security.service.TokenValidationStrategy;
@@ -24,9 +25,10 @@ public class AppTokenValidationStrategy implements TokenValidationStrategy {
     @Value("${security.scopes:#{null}}")
     private String scopes;
 
+    private AppEntity app;
+
     @Override
-    public void validate(HttpServletRequest request, Object token) {
-        AppEntity app = (AppEntity) token;
+    public void validate(HttpServletRequest request) {
         if (ObjectUtils.isEmpty(app)) {
             throw new AuthenticationException("App token inválido.");
         }
@@ -73,5 +75,10 @@ public class AppTokenValidationStrategy implements TokenValidationStrategy {
     @Override
     public boolean supports(Object token) {
         return token instanceof AppEntity;
+    }
+
+    @Override
+    public void setObject(Object app) {
+        this.app = (AppEntity) app;
     }
 }

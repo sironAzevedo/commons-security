@@ -3,6 +3,7 @@ package com.br.azevedo.security.interceptor;
 import com.br.azevedo.exception.ApplicationException;
 import com.br.azevedo.exception.AuthenticationException;
 import com.br.azevedo.exception.NotFoundException;
+import com.br.azevedo.infra.cache.redis.repository.ICacheRepository;
 import com.br.azevedo.security.EnableSecurity;
 import com.br.azevedo.security.JwtSecurity;
 import com.br.azevedo.security.config.vault.VaultParameter;
@@ -14,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.AnnotationUtils;
@@ -27,8 +29,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static com.br.azevedo.security.utils.Constantes.*;
 
@@ -44,21 +44,24 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
     private final ApplicationContext applicationContext;
     private final TokenValidatorFactory tokenValidatorFactory;
     private HttpServletRequest request;
+    private final ICacheRepository cacheRepository;
 
     public AuthorizationInterceptor(
             ApplicationContext applicationContext,
             Environment environment,
             VaultParameter vaultParameter,
-            TokenValidatorFactory tokenValidatorFactory) {
+            TokenValidatorFactory tokenValidatorFactory,
+            ICacheRepository cacheRepository) {
         this.applicationContext = applicationContext;
         this.tokenValidatorFactory = tokenValidatorFactory;
+        this.cacheRepository = cacheRepository;
         this.enabledSecurity(environment, vaultParameter);
     }
 
     @Override
-    public boolean preHandle(HttpServletRequest request,
-                             HttpServletResponse response,
-                             Object handler) {
+    public boolean preHandle(@NonNull HttpServletRequest request,
+                             @NonNull HttpServletResponse response,
+                             @NonNull Object handler) {
 
         this.request = request;
         validateAuthorization(request.getHeader(AUTHORIZATION), request);
@@ -69,8 +72,7 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
     private void enabledSecurity(Environment environment, VaultParameter vaultParameter) {
         try {
             log.info("Ativando a Segurança");
-            VaultSecretManager vaultSecretManager = new VaultSecretManager(applicationContext, environment, vaultParameter);
-            this.jwtService = new JwtSecurity(this.request, vaultSecretManager, tokenValidatorFactory);
+            this.jwtService = new JwtSecurity(this.request, tokenValidatorFactory);
             log.info("Segurança ativada");
         } catch (Exception e) {
             log.error("Não foi possivel habilitar a segurança: {}", e.getMessage());
