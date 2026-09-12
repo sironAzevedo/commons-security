@@ -1,6 +1,7 @@
 package com.br.azevedo.security;
 
 import com.br.azevedo.exception.AuthenticationException;
+import com.br.azevedo.exception.AuthorizationException;
 import com.br.azevedo.security.service.TokenValidationStrategy;
 import com.br.azevedo.security.strategy.TokenValidatorFactory;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,9 +31,13 @@ public class JwtSecurity {
     }
 
     public void validateAuthorization(String token) {
+        validateAuthorization(token, this.request);
+    }
+
+    public void validateAuthorization(String token, HttpServletRequest currentRequest) {
         try {
             TokenValidationStrategy strategy = tokenValidatorFactory.getStrategy(token);
-            strategy.validate(this.request);
+            strategy.validate(currentRequest != null ? currentRequest : this.request);
         }
 
 //        catch (ExpiredJwtException e) {
@@ -40,6 +45,9 @@ public class JwtSecurity {
 //            throw new AuthenticationException("Token expirado");
 //        }
 
+        catch (AuthorizationException | AuthenticationException ex) {
+            throw ex;
+        }
         catch (Exception ex) {
             log.error("Erro ao validar o token: {}", ex.getMessage());
             var msg = StringUtils.defaultIfBlank(ex.getMessage(), "Error while trying to proccess the Access Token.");
