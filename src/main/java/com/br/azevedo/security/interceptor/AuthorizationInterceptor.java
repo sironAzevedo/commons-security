@@ -7,7 +7,6 @@ import com.br.azevedo.infra.cache.redis.repository.ICacheRepository;
 import com.br.azevedo.security.EnableSecurity;
 import com.br.azevedo.security.JwtSecurity;
 import com.br.azevedo.security.audit.SecurityAuditLogger;
-import com.br.azevedo.security.config.vault.VaultParameter;
 import com.br.azevedo.security.strategy.TokenValidatorFactory;
 import com.br.azevedo.security.utils.SecurityMetadataResolver;
 import jakarta.servlet.http.HttpServletRequest;
@@ -67,7 +66,6 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
     public AuthorizationInterceptor(
             ApplicationContext applicationContext,
             Environment environment,
-            VaultParameter vaultParameter,
             TokenValidatorFactory tokenValidatorFactory,
             ICacheRepository cacheRepository,
             SecurityMetadataResolver metadataResolver,
@@ -77,16 +75,15 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
         this.cacheRepository = cacheRepository;
         this.metadataResolver = metadataResolver != null ? metadataResolver : new SecurityMetadataResolver();
         this.auditLogger = auditLogger != null ? auditLogger : new SecurityAuditLogger();
-        this.enabledSecurity(environment, vaultParameter);
+        this.enabledSecurity(environment);
     }
 
     public AuthorizationInterceptor(
             ApplicationContext applicationContext,
             Environment environment,
-            VaultParameter vaultParameter,
             TokenValidatorFactory tokenValidatorFactory,
             ICacheRepository cacheRepository) {
-        this(applicationContext, environment, vaultParameter, tokenValidatorFactory, cacheRepository, null, null);
+        this(applicationContext, environment, tokenValidatorFactory, cacheRepository, null, null);
     }
 
     @Override
@@ -129,7 +126,7 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
         return true;
     }
 
-    private void enabledSecurity(Environment environment, VaultParameter vaultParameter) {
+    private void enabledSecurity(Environment environment) {
         try {
             log.info("Ativando a Segurança");
             this.jwtService = new JwtSecurity(this.request, tokenValidatorFactory);
