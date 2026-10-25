@@ -14,6 +14,10 @@ Biblioteca corporativa de autenticação, autorização e segurança para aplica
 - [@EnableVault](#enablevault)
   - [Uso Independente do HashiCorp Vault](#uso-independente-do-hashicorp-vault)
   - [Propriedades do Vault](#propriedades-do-vault)
+- [@EnableCrypto / @EnableCriptografia](#enablecrypto--enablecriptografia)
+  - [Visão e Recursos de Criptografia](#visão-e-recursos-de-criptografia)
+  - [Exemplo de Uso](#exemplo-de-uso-da-criptografia)
+  - [Propriedades Configuráveis](#propriedades-de-criptografia)
 - [Exemplos de Configuração](#exemplos-de-configuração)
   - [Cenário 1: Apenas Segurança (SSM Parameter Store)](#cenário-1-apenas-segurança-ssm-parameter-store)
   - [Cenário 2: Segurança + Vault Independente](#cenário-2-segurança--vault-independente)
@@ -179,3 +183,62 @@ cloud:
 ```
 
 Neste caso, o `SsmClient` e `AwsParameterStoreService` criados pelo `@EnableAws` são automaticamente compartilhados com o `@EnableSecurity`, sem duplicação de conexões ou clientes.
+
+---
+
+## @EnableCrypto / @EnableCriptografia
+
+Habilita o serviço centralizado de criptografia simétrica (AES-256-CBC) gerenciada, permitindo criptografar e descriptografar dados sensíveis (senhas, documentos, tokens) de forma segura e padronizada entre os microsserviços.
+
+### Visão e Recursos de Criptografia
+
+- **Chave Mestre Centralizada:** A chave de cifra é recuperada automaticamente do AWS SSM Parameter Store no caminho configurável `/app/data/security/cripto-{environment}`.
+- **Cache Inteligente:** A chave é armazenada em cache (TTL padrão de 7 dias) via Redis/local para máxima performance e custo reduzido na AWS.
+- **Resolução Automática de Ambiente:** Utiliza `EnvironmentUtils` para determinar o profile ativo (`dev`, `hml`, `prd`, etc.).
+- **Desacoplamento e Injeção:** Disponibiliza as interfaces `ICriptografiaService` e `ICryptoService` prontas para injeção via Spring `@Autowired`.
+- **Criptografia com Chave Customizada:** Além da chave mestre, suporta `encrypt(texto, chave)` e `decrypt(cifrado, chave)`.
+
+### Exemplo de Uso da Criptografia
+
+```java
+@SpringBootApplication
+@EnableCrypto // ou @EnableCriptografia
+public class Application {
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
+}
+```
+
+Injetando no seu serviço:
+
+```java
+@Service
+@RequiredArgsConstructor
+public class MeuServico {
+
+    private final ICriptografiaService criptografiaService;
+
+    public void salvarSenha(String senhaPlana) {
+        String senhaCriptografada = criptografiaService.encrypt(senhaPlana);
+        // salva senha criptografada na base
+    }
+
+    public String obterSenha(String senhaCriptografada) {
+        return criptografiaService.decrypt(senhaCriptografada);
+    }
+}
+```
+
+### Propriedades de Criptografia
+
+Configurações opcionais no `application.yml`:
+
+```yaml
+security:
+  crypto:
+    parameter-path-pattern: "/app/data/security/cripto-%s" # caminho da chave no SSM
+    cache-ttl: 7d                                        # TTL do cache da chave mestre
+    algorithm: "AES/CBC/PKCS5Padding"                    # algoritmo de cifra
+    iv-length-bytes: 16                                   # tamanho do vetor IV
+```
