@@ -36,7 +36,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         SecurityConfig.class,
         AuthorizationInterceptor.class,
         SecurityMetadataResolver.class,
-        SecurityAuditLogger.class
+        SecurityAuditLogger.class,
+        com.br.azevedo.security.service.ScannerProtectionService.class
 })
 @TestPropertySource(properties = "security.enabled=true")
 class EnableSecurityIntegrationTest {

@@ -10,7 +10,6 @@ import com.br.azevedo.utils.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.core.env.Environment;
-import org.springframework.stereotype.Service;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
@@ -28,7 +27,6 @@ import java.util.Map;
  * com chave mestre armazenada no AWS Parameter Store e cacheada automaticamente.
  */
 @Slf4j
-@Service
 public class CriptografiaServiceImpl implements ICryptoService {
 
     private final AwsParameterStoreService parameterStoreService;

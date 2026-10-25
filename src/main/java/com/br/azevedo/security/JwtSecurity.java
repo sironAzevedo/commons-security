@@ -49,7 +49,7 @@ public class JwtSecurity {
             throw ex;
         }
         catch (Exception ex) {
-            log.error("Erro ao validar o token: {}", ex.getMessage());
+            log.warn("Erro ao validar o token: {}", ex.getMessage());
             var msg = StringUtils.defaultIfBlank(ex.getMessage(), "Error while trying to proccess the Access Token.");
             throw new AuthenticationException(msg);
         }

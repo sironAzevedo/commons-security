@@ -13,8 +13,9 @@ import org.springframework.vault.core.VaultTemplate;
 /**
  * Configuração independente para o HashiCorp Vault.
  * Carregada exclusivamente quando a anotação @EnableVault está presente.
+ * Não utiliza @Configuration para evitar auto-detecção acidental por @ComponentScan
+ * em aplicações cliente que não utilizam o Vault.
  */
-@Configuration
 public class VaultConfiguration {
 
     @Bean
