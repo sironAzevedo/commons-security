@@ -6,7 +6,6 @@ import com.br.azevedo.exception.NotFoundException;
 import com.br.azevedo.infra.cache.redis.repository.ICacheRepository;
 import com.br.azevedo.security.EnableSecurity;
 import com.br.azevedo.security.audit.SecurityAuditLogger;
-import com.br.azevedo.security.config.vault.VaultParameter;
 import com.br.azevedo.security.service.TokenValidationStrategy;
 import com.br.azevedo.security.strategy.TokenValidatorFactory;
 import com.br.azevedo.security.utils.SecurityMetadataResolver;
@@ -38,8 +37,6 @@ class AuthorizationInterceptorTest {
     @Mock
     private Environment environment;
     @Mock
-    private VaultParameter vaultParameter;
-    @Mock
     private TokenValidatorFactory tokenValidatorFactory;
     @Mock
     private ICacheRepository cacheRepository;
@@ -68,7 +65,6 @@ class AuthorizationInterceptorTest {
         interceptor = new AuthorizationInterceptor(
                 applicationContext,
                 environment,
-                vaultParameter,
                 tokenValidatorFactory,
                 cacheRepository,
                 metadataResolver,

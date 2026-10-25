@@ -2,7 +2,6 @@ package com.br.azevedo.security;
 
 import com.br.azevedo.infra.cache.redis.repository.ICacheRepository;
 import com.br.azevedo.security.audit.SecurityAuditLogger;
-import com.br.azevedo.security.config.vault.VaultParameter;
 import com.br.azevedo.security.interceptor.AuthorizationInterceptor;
 import com.br.azevedo.security.interceptor.SecurityConfig;
 import com.br.azevedo.security.service.TokenValidationStrategy;
@@ -50,9 +49,6 @@ class EnableSecurityIntegrationTest {
 
     @MockBean
     private TokenValidatorFactory tokenValidatorFactory;
-
-    @MockBean
-    private VaultParameter vaultParameter;
 
     @MockBean
     private ICacheRepository cacheRepository;

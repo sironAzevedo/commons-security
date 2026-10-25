@@ -5,10 +5,7 @@ import com.br.azevedo.infra.cache.redis.repository.ICacheRepository;
 import com.br.azevedo.security.config.vault.VaultParameter;
 import com.br.azevedo.security.config.vault.VaultSecretsConfig;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cloud.vault.config.VaultHealthIndicator;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.vault.core.VaultTemplate;
 import org.springframework.vault.support.Versioned;
@@ -18,11 +15,14 @@ import java.util.Map;
 import java.util.Objects;
 
 @Slf4j
-@Configuration
 public class VaultSecretManager {
 
-    private final VaultTemplate vaultTemplate;
+    private final ApplicationContext applicationContext;
+    private final Environment environment;
+    private final VaultParameter vaultParameter;
     private final ICacheRepository cacheRepository;
+    private VaultTemplate vaultTemplate;
+
     public static final String SECRET_DATA_PATH = "secret/data/";
     private final String KEY_CACHE_VAULT_DEFAULT = "vault_secret_by_path";
     private static final Duration CACHE_TTL = Duration.ofDays(6);
@@ -32,25 +32,27 @@ public class VaultSecretManager {
             Environment environment,
             VaultParameter vaultParameter,
             ICacheRepository cacheRepository) {
+        this.applicationContext = applicationContext;
+        this.environment = environment;
+        this.vaultParameter = vaultParameter;
         this.cacheRepository = cacheRepository;
-        VaultSecretsConfig vaultSecretsConfig = new VaultSecretsConfig(applicationContext, environment);
-        this.vaultTemplate = vaultSecretsConfig.vaultTemplate(vaultParameter.getVaultUri(), vaultParameter.getRoleId(), vaultParameter.getSecretId());
     }
 
-    @Bean
-    public VaultTemplate vaultTemplate() {
+    public synchronized VaultTemplate vaultTemplate() {
+        if (this.vaultTemplate == null) {
+            if (vaultParameter == null || vaultParameter.getRoleId() == null || vaultParameter.getSecretId() == null) {
+                throw new ApplicationException("Para utilizar @EnableVault, as propriedades 'security.secret.vault.role-id' e 'security.secret.vault.secret-id' são obrigatórias.");
+            }
+            VaultSecretsConfig vaultSecretsConfig = new VaultSecretsConfig(applicationContext, environment);
+            this.vaultTemplate = vaultSecretsConfig.vaultTemplate(vaultParameter.getVaultUri(), vaultParameter.getRoleId(), vaultParameter.getSecretId());
+        }
         return this.vaultTemplate;
-    }
-
-    @Bean
-    public VaultHealthIndicator vaultHealthIndicator(VaultTemplate vaultTemplate) {
-        return new VaultHealthIndicator(vaultTemplate);
     }
 
     public void createOrUpdateSecret(String path, Map<String, Object> data) {
         try {
 
-            Versioned.Metadata createResponse = vaultTemplate
+            Versioned.Metadata createResponse = vaultTemplate()
                     .opsForVersionedKeyValue("secret")
                     .put(path, data);
 
@@ -62,7 +64,7 @@ public class VaultSecretManager {
 
     public void deleteSecret(String path) {
         try {
-            vaultTemplate.delete(path);
+            vaultTemplate().delete(path);
             cacheRepository.removeCacheByNameAndKey(KEY_CACHE_VAULT_DEFAULT, path);
             log.info("Secret deleted: {}", path);
         } catch (Exception e) {
@@ -109,7 +111,7 @@ public class VaultSecretManager {
 
     private Map<String, Object> fetchFromVault(String path) {
 
-        var response = vaultTemplate.read(SECRET_DATA_PATH + path);
+        var response = vaultTemplate().read(SECRET_DATA_PATH + path);
 
         if (response.getData() == null) {
             log.warn("Secret não encontrado no Vault para path: {}", path);

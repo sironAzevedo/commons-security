@@ -1,5 +1,8 @@
 package com.br.azevedo.security;
 
+import com.br.azevedo.security.config.SecurityAwsConfig;
+import com.br.azevedo.security.interceptor.SecurityConfig;
+import org.springframework.context.annotation.Import;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.lang.annotation.Documented;
@@ -45,6 +48,7 @@ import java.lang.annotation.Target;
 @Documented
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
+@Import({SecurityConfig.class, SecurityAwsConfig.class})
 public @interface EnableSecurity {
 
     /**
