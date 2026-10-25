@@ -14,10 +14,11 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 
 /**
- * Configuração Spring carregada ao utilizar {@link com.br.azevedo.security.EnableCrypto}
+ * Configuração Spring carregada exclusivamente ao utilizar {@link com.br.azevedo.security.EnableCrypto}
  * ou {@link com.br.azevedo.security.EnableCriptografia}.
+ * Não utiliza @Configuration para evitar auto-detecção acidental por @ComponentScan
+ * em aplicações cliente que não utilizam o serviço de criptografia simétrica/assimétrica.
  */
-@Configuration
 @Import(SecurityAwsConfig.class)
 @EnableConfigurationProperties(CryptoProperties.class)
 public class CryptoConfiguration {

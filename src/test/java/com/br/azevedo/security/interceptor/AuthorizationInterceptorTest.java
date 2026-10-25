@@ -320,4 +320,39 @@ class AuthorizationInterceptorTest {
         assertTrue(interceptor.isPublicUrl("/swagger-ui.html"));
         assertFalse(interceptor.isPublicUrl("/api/privado"));
     }
+
+    @Test
+    @DisplayName("Cenário 18 - Requisição de scanner (.php / wp-admin) deve ser bloqueada com 404 sem lançar AuthenticationException")
+    void shouldBlockScannerProbeWithoutThrowingAuthenticationException() throws Exception {
+        when(request.getRequestURI()).thenReturn("/wp-admin/maint/index.php");
+        when(request.getRemoteAddr()).thenReturn("20.194.17.163");
+
+        boolean allowed = interceptor.preHandle(request, response, new Object());
+
+        assertFalse(allowed);
+        verify(response).sendError(HttpServletResponse.SC_NOT_FOUND, "Not Found");
+        verifyNoInteractions(tokenValidatorFactory);
+    }
+
+    @Test
+    @DisplayName("Cenário 19 - ResourceHttpRequestHandler (recursos estáticos / unmapped 404) deve ser liberado sem exigir token")
+    void shouldAllowResourceHttpRequestHandlerWithoutToken() {
+        @EnableSecurity
+        class MainApp {}
+
+        when(applicationContext.getBeansWithAnnotation(EnableSecurity.class))
+                .thenReturn(Map.of("mainApp", new MainApp()));
+
+        when(request.getMethod()).thenReturn("GET");
+        when(request.getRequestURI()).thenReturn("/static/style.css");
+
+        org.springframework.web.servlet.resource.ResourceHttpRequestHandler resourceHandler =
+                mock(org.springframework.web.servlet.resource.ResourceHttpRequestHandler.class);
+
+        boolean allowed = interceptor.preHandle(request, response, resourceHandler);
+
+        assertTrue(allowed);
+        verifyNoInteractions(tokenValidatorFactory);
+    }
 }
+

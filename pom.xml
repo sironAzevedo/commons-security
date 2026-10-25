@@ -37,6 +37,11 @@
 		</dependency>
 
 		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-crypto</artifactId>
+		</dependency>
+
+		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
@@ -45,7 +50,7 @@
 		<dependency>
 			<groupId>com.br.azevedo</groupId>
 			<artifactId>commons-utils</artifactId>
-			<version>1.0.25102026035229</version>
+			<version>1.0.25102026072122</version>
 <!--			<version>1.0-SNAPSHOT</version>-->
 		</dependency>
 
@@ -56,17 +61,18 @@
 			<optional>true</optional>
 		</dependency>
 
+		<!-- Vault opcional para aplicações que utilizam @EnableVault -->
 		<dependency>
 			<groupId>org.springframework.vault</groupId>
 			<artifactId>spring-vault-core</artifactId>
 			<version>3.1.1</version>
+			<optional>true</optional>
 		</dependency>
 
-		<!-- Sem essa LIB o Vault não funciona com o Spring boot -->
 		<dependency>
-			<groupId>org.springframework.cloud</groupId>
-			<artifactId>spring-cloud-starter-vault-config</artifactId>
-			<version>${vault.version}</version>
+			<groupId>org.apache.httpcomponents.client5</groupId>
+			<artifactId>httpclient5</artifactId>
+			<optional>true</optional>
 		</dependency>
 
 		<!-- JWT -->

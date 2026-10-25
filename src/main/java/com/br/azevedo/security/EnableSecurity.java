@@ -1,7 +1,16 @@
 package com.br.azevedo.security;
 
+import com.br.azevedo.security.audit.SecurityAuditLogger;
+import com.br.azevedo.security.config.AspectConfig;
 import com.br.azevedo.security.config.SecurityAwsConfig;
+import com.br.azevedo.security.interceptor.AuthorizationInterceptor;
 import com.br.azevedo.security.interceptor.SecurityConfig;
+import com.br.azevedo.security.service.ScannerProtectionService;
+import com.br.azevedo.security.service.impl.AppTokenValidationStrategy;
+import com.br.azevedo.security.service.impl.UserTokenValidationStrategy;
+import com.br.azevedo.security.strategy.TokenValidatorFactory;
+import com.br.azevedo.security.user.UserValidation;
+import com.br.azevedo.security.utils.SecurityMetadataResolver;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.bind.annotation.RequestMethod;
 
@@ -48,7 +57,20 @@ import java.lang.annotation.Target;
 @Documented
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
-@Import({SecurityConfig.class, SecurityAwsConfig.class})
+@Import({
+        SecurityConfig.class,
+        SecurityAwsConfig.class,
+        AuthorizationInterceptor.class,
+        JwtSecurity.class,
+        TokenValidatorFactory.class,
+        AppTokenValidationStrategy.class,
+        UserTokenValidationStrategy.class,
+        UserValidation.class,
+        SecurityMetadataResolver.class,
+        ScannerProtectionService.class,
+        SecurityAuditLogger.class,
+        AspectConfig.class
+})
 public @interface EnableSecurity {
 
     /**

@@ -7,6 +7,7 @@ import com.br.azevedo.infra.cache.redis.repository.ICacheRepository;
 import com.br.azevedo.security.EnableSecurity;
 import com.br.azevedo.security.JwtSecurity;
 import com.br.azevedo.security.audit.SecurityAuditLogger;
+import com.br.azevedo.security.service.ScannerProtectionService;
 import com.br.azevedo.security.strategy.TokenValidatorFactory;
 import com.br.azevedo.security.utils.SecurityMetadataResolver;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,6 +22,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.web.servlet.resource.ResourceHttpRequestHandler;
 
 import static com.br.azevedo.security.utils.Constantes.AUTHORIZATION;
 import static com.br.azevedo.security.utils.Constantes.TRANSACTION_ID;
@@ -32,12 +34,16 @@ import static com.br.azevedo.security.utils.Constantes.UUID_REGEX_PATTERN;
  *
  * <p><b>Regra de Funcionamento e Precedência:</b></p>
  * <ol>
+ *   <li><b>Proteção contra Scanners e Blacklist:</b> Requisições maliciosas conhecidas (.php, /wp-admin)
+ *       ou IPs bloqueados são mitigadas imediatamente via {@link ScannerProtectionService}.</li>
  *   <li><b>Requisições OPTIONS:</b> Liberadas automaticamente para suporte a CORS pre-flight.</li>
+ *   <li><b>Recursos Estáticos e Rotas Inexistentes:</b> {@link ResourceHttpRequestHandler} é liberado
+ *       sem exigir autenticação para que o Spring MVC responda 404 Not Found ou sirva o recurso.</li>
  *   <li><b>Endpoints Públicos:</b> Se o endpoint for considerado público via {@link #isPublicUrl(String)},
  *       ou pelas propriedades {@code publicPaths} / {@code publicMethods} da anotação (global ou método),
  *       a requisição é liberada sem validação de autorização.</li>
  *   <li><b>Anotação Global:</b> Se {@link EnableSecurity} estiver presente na classe principal/configuração
- *       da aplicação, a segurança é ativa para TODOS os endpoints não públicos.</li>
+ *       da aplicação, a segurança é ativa para TODOS os controllers/endpoints não públicos.</li>
  *   <li><b>Anotação por Método:</b> Se {@link EnableSecurity} NÃO estiver na classe principal, apenas
  *       métodos ou controllers explicitamente anotados com {@link EnableSecurity} exigirão validação de autorização.
  *       Endpoints não anotados permanecem abertos.</li>
@@ -61,6 +67,7 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
 
     private final SecurityMetadataResolver metadataResolver;
     private final SecurityAuditLogger auditLogger;
+    private final ScannerProtectionService scannerProtectionService;
 
     @Autowired
     public AuthorizationInterceptor(
@@ -68,13 +75,15 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
             Environment environment,
             TokenValidatorFactory tokenValidatorFactory,
             ICacheRepository cacheRepository,
-            SecurityMetadataResolver metadataResolver,
-            SecurityAuditLogger auditLogger) {
+            @Autowired(required = false) SecurityMetadataResolver metadataResolver,
+            @Autowired(required = false) SecurityAuditLogger auditLogger,
+            @Autowired(required = false) ScannerProtectionService scannerProtectionService) {
         this.applicationContext = applicationContext;
         this.tokenValidatorFactory = tokenValidatorFactory;
         this.cacheRepository = cacheRepository;
         this.metadataResolver = metadataResolver != null ? metadataResolver : new SecurityMetadataResolver();
         this.auditLogger = auditLogger != null ? auditLogger : new SecurityAuditLogger();
+        this.scannerProtectionService = scannerProtectionService != null ? scannerProtectionService : new ScannerProtectionService(environment);
         this.enabledSecurity(environment);
     }
 
@@ -82,8 +91,18 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
             ApplicationContext applicationContext,
             Environment environment,
             TokenValidatorFactory tokenValidatorFactory,
+            ICacheRepository cacheRepository,
+            SecurityMetadataResolver metadataResolver,
+            SecurityAuditLogger auditLogger) {
+        this(applicationContext, environment, tokenValidatorFactory, cacheRepository, metadataResolver, auditLogger, null);
+    }
+
+    public AuthorizationInterceptor(
+            ApplicationContext applicationContext,
+            Environment environment,
+            TokenValidatorFactory tokenValidatorFactory,
             ICacheRepository cacheRepository) {
-        this(applicationContext, environment, tokenValidatorFactory, cacheRepository, null, null);
+        this(applicationContext, environment, tokenValidatorFactory, cacheRepository, null, null, null);
     }
 
     @Override
@@ -93,28 +112,38 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
 
         this.request = request;
 
-        // 1. Requisições OPTIONS (CORS) sempre permitidas
+        // 1. Proteção contra Scanners de Vulnerabilidade e Blacklist de IPs (WAF leve)
+        if (scannerProtectionService != null && !scannerProtectionService.isAllowed(request, response)) {
+            return false;
+        }
+
+        // 2. Requisições OPTIONS (CORS) sempre permitidas
         if (isOptionsRequest(request)) {
             return true;
         }
 
-        // 2. Resolver metadados das anotações global e local (@EnableSecurity)
+        // 3. Recursos estáticos e rotas sem Controller (ResourceHttpRequestHandler) não passam por validação de token
+        if (handler instanceof ResourceHttpRequestHandler) {
+            return true;
+        }
+
+        // 4. Resolver metadados das anotações global e local (@EnableSecurity)
         EnableSecurity globalSecurity = metadataResolver.getGlobalSecurityAnnotation(this.applicationContext);
         EnableSecurity localSecurity = metadataResolver.getLocalSecurityAnnotation(handler);
 
-        // 3. Verificar se é uma requisição pública (pelo sistema, publicPaths ou publicMethods)
+        // 5. Verificar se é uma requisição pública (pelo sistema, publicPaths ou publicMethods)
         if (metadataResolver.isPublicRequest(request, handler, globalSecurity, localSecurity)) {
             return true;
         }
 
-        // 4. Determinar se a segurança está ativa para este endpoint
+        // 6. Determinar se a segurança está ativa para este endpoint
         boolean isSecurityActive = (globalSecurity != null) || (localSecurity != null);
         if (!isSecurityActive) {
             // Endpoint não possui anotação e segurança global não está ativa -> Permite acesso aberto
             return true;
         }
 
-        // 5. Validar autorização do token e transactionid para endpoint protegido
+        // 7. Validar autorização do token e transactionid para endpoint protegido
         try {
             validateAuthorization(request.getHeader(AUTHORIZATION), request);
             validateTransactionId(request.getHeader(TRANSACTION_ID));
@@ -139,7 +168,7 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
 
     private void validateAuthorization(String authorization, HttpServletRequest request) {
         if (StringUtils.isEmpty(authorization)) {
-            log.error("Token não foi enviado");
+            log.warn("Token não foi enviado");
             throw new AuthenticationException("The access token was not informed.");
         }
 
@@ -157,10 +186,10 @@ public class AuthorizationInterceptor implements HandlerInterceptor {
 
     private void validateTransactionId(String transactionId) {
         if (StringUtils.isEmpty(transactionId)) {
-            log.error("The transactionid header is required.");
+            log.warn("The transactionid header is required.");
             throw new NotFoundException("The transactionid header is required.");
         } else if (!UUID_REGEX_PATTERN.matcher(transactionId).matches()){
-            log.error("The transactionid [{}] invalid.", transactionId);
+            log.warn("The transactionid [{}] invalid.", transactionId);
             throw new NotFoundException("Invalid transactionid.");
         }
     }
